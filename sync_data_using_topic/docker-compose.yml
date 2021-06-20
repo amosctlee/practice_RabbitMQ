@@ -1,0 +1,77 @@
+version: "3.9"
+
+services:
+  subscriber_1:
+    container_name: subscriber_1
+    build:
+      context: ./subscriber
+      dockerfile: dockerfile
+    image: subscriber_1:latest
+    volumes:
+      - ./subscriber/data:/usr/src/app/data
+    environment:
+      "SUBSCRIBE_TOPICS": "company.* director.new"
+      "LOG_DIR": "/usr/src/app/data/subscriber_1"
+      "RABBITMQ_USER": "user"
+      "RABBITMQ_PASS": "password"
+      "RABBITMQ_EXCHANGE": "table_update"
+    depends_on:
+      - rabbitmq
+    networks: 
+      sync_data_using_topic:
+  
+  subscriber_2:
+    container_name: subscriber_2
+    build:
+      context: ./subscriber
+      dockerfile: dockerfile
+    image: subscriber_2:latest
+    volumes:
+      - ./subscriber/data:/usr/src/app/data
+    environment:
+      "SUBSCRIBE_TOPICS": "director.old history.*"
+      "LOG_DIR": "/usr/src/app/data/subscriber_2"
+      "RABBITMQ_USER": "user"
+      "RABBITMQ_PASS": "password"
+      "RABBITMQ_EXCHANGE": "table_update"
+    depends_on:
+      - rabbitmq
+    networks: 
+      sync_data_using_topic:
+  
+      
+  publisher:
+    container_name: publisher
+    build:
+      context: ./publisher
+      dockerfile: dockerfile
+    image: publisher:latest
+    environment:
+      "LOG_DIR": "/usr/src/app/data/publisher"
+      "RABBITMQ_USER": "user"
+      "RABBITMQ_PASS": "password"
+      "RABBITMQ_EXCHANGE": "table_update"
+    depends_on:
+      - rabbitmq
+    tty: true  # 進入container 後自已啟動腳本
+    networks: 
+      sync_data_using_topic:
+
+
+  # 啟動時要先啟動rabbitmq 等服務確認啟動後再啟動worker
+  rabbitmq:
+    image: rabbitmq:3-management
+    hostname: my-rabbit-mq
+    container_name: rabbit-mq
+    environment: 
+      "RABBITMQ_DEFAULT_USER": "user"
+      "RABBITMQ_DEFAULT_PASS": "password"
+    ports: 
+      - 15672:15672
+      - 5672:5672
+    
+    networks: 
+      sync_data_using_topic:
+
+networks: 
+  sync_data_using_topic:
