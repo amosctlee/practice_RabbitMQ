@@ -19,3 +19,5 @@
    python publish_tables.py
    ```
 
+## 架構示意圖
+![](./components_architecture.jpg)
